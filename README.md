@@ -98,11 +98,11 @@ pip3 install -U .
 cd ..
 ```
 
-# Getting Started
+## Getting Started
 Some Jupyter notebook will be provided as tutorials for the package. They will be located in the
 [getting_started](getting_started) directory.
 
-# Documentation
+## Documentation
 The documentation will be accessible from [here](https://decathllon_challenge.readthedocs.io/en/latest/index.html).
 
 To generate locally the documentation:
