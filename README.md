@@ -8,7 +8,7 @@ The Readme file is organized as follows:
   * [1.2 Data](#Data)
   * [1.3 Preliminary questions & EDA](#Preliminary-questions-&-EDA)
   * [1.4 Modeling](#Modeling)
-  * [1.5 ML pipeline](#ML pipeline)
+  * [1.5 ML pipeline](#ML-pipeline)
 * [2 Installation](#installation)
   * [2.1 Setup a Virtualenv (optional)](#setup-a-virtualenv-optional)
   * [2.2 Install from source](#install-from-source)
