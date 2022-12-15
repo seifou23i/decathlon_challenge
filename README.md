@@ -73,7 +73,6 @@ The aim here is to realize a reproducible pipeline.
     f. Propose a solution which monitors the the model performance in production (optional)
 
 ## Installation
-To be able to run the experiments in this repository, the users should install the last lips package from its github repository. The following steps show how to install this package and its dependencies from source.
 
 ### Requirements
 - Python >= 3.x.x
