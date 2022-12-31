@@ -8,7 +8,7 @@ The Readme file is organized as follows:
   * [1.2 Data](#Data)
   * [1.3 Preliminary questions & EDA](#Preliminary-questions-&-EDA)
   * [1.4 Modeling](#Modeling)
-  * [1.5 ML pipeline](#ML pipeline)
+  * [1.5 ML pipeline](#ML-pipeline)
 * [2 Installation](#installation)
   * [2.1 Setup a Virtualenv (optional)](#setup-a-virtualenv-optional)
   * [2.2 Install from source](#install-from-source)
@@ -73,7 +73,6 @@ The aim here is to realize a reproducible pipeline.
     f. Propose a solution which monitors the the model performance in production (optional)
 
 ## Installation
-To be able to run the experiments in this repository, the users should install the last lips package from its github repository. The following steps show how to install this package and its dependencies from source.
 
 ### Requirements
 - Python >= 3.x.x
@@ -99,11 +98,11 @@ pip3 install -U .
 cd ..
 ```
 
-# Getting Started
+## Getting Started
 Some Jupyter notebook will be provided as tutorials for the package. They will be located in the
 [getting_started](getting_started) directory.
 
-# Documentation
+## Documentation
 The documentation will be accessible from [here](https://decathllon_challenge.readthedocs.io/en/latest/index.html).
 
 To generate locally the documentation:
