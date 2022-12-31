@@ -6,6 +6,14 @@ authors = ["seifou <es_attoui@esi.dz>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+jupyter = "^1.0.0"
+pandas = "^1.5.2"
+shapely = "^2.0.0"
+geopandas = "^0.12.2"
+matplotlib = "^3.6.2"
+plotly = "^5.11.0"
+pandasql = "^0.7.3"
+scikit-learn = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
 
