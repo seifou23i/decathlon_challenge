@@ -724,14 +724,6 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
-name = "kaleido"
-version = "0.2.1.post1"
-description = "Static image export for web-based visualization libraries with zero dependencies"
-category = "main"
-optional = false
-python-versions = "*"
-
-[[package]]
 name = "kiwisolver"
 version = "1.4.4"
 description = "A fast implementation of the Cassowary constraint solver"
@@ -1605,6 +1597,26 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "xgboost"
+version = "1.7.2"
+description = "XGBoost Python Package"
+category = "main"
+optional = false
+python-versions = ">=3.8"
+
+[package.dependencies]
+numpy = "*"
+scipy = "*"
+
+[package.extras]
+dask = ["dask", "pandas", "distributed"]
+datatable = ["datatable"]
+pandas = ["pandas"]
+plotting = ["graphviz", "matplotlib"]
+pyspark = ["pyspark", "scikit-learn", "cloudpickle"]
+scikit-learn = ["scikit-learn"]
+
+[[package]]
 name = "zipp"
 version = "3.11.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
@@ -1619,7 +1631,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "e296e10680e6722dbedf520cd040bd0315ba06f31921d5f40f981437e36136a0"
+content-hash = "3cbeed9121afbfbcd873bbb212beba3c0ba11efa176d6ca00714ceff61748485"
 
 [metadata.files]
 anyio = []
@@ -1732,7 +1744,6 @@ jupyterlab-pygments = [
     {file = "jupyterlab_pygments-0.2.2.tar.gz", hash = "sha256:7405d7fde60819d905a9fa8ce89e4cd830e318cdad22a0030f7a901da705585d"},
 ]
 jupyterlab-widgets = []
-kaleido = []
 kiwisolver = []
 markupsafe = [
     {file = "MarkupSafe-2.1.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:86b1f75c4e7c2ac2ccdaec2b9022845dbb81880ca318bb7a0a01fbf7813e3812"},
@@ -1892,4 +1903,5 @@ webencodings = [
 ]
 websocket-client = []
 widgetsnbextension = []
+xgboost = []
 zipp = []
