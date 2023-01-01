@@ -193,6 +193,24 @@ click = ">=4.0"
 test = ["pytest-cov"]
 
 [[package]]
+name = "cmdstanpy"
+version = "1.0.8"
+description = "Python interface to CmdStan"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+numpy = ">=1.21"
+pandas = "*"
+tqdm = "*"
+
+[package.extras]
+all = ["xarray"]
+docs = ["sphinx", "sphinx-gallery", "sphinx-rtd-theme", "numpydoc", "matplotlib"]
+tests = ["flake8", "pylint", "pytest", "pytest-cov", "pytest-order", "mypy", "testfixtures", "tqdm", "xarray"]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -287,6 +305,14 @@ description = "Discover and load entry points from installed packages."
 category = "main"
 optional = false
 python-versions = ">=3.6"
+
+[[package]]
+name = "ephem"
+version = "4.1.4"
+description = "Compute positions of the planets and stars"
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "executing"
@@ -779,6 +805,19 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "lunarcalendar"
+version = "0.0.9"
+description = "A lunar calendar converter, including a number of lunar and solar holidays, mainly from China."
+category = "main"
+optional = false
+python-versions = ">=2.7, <4"
+
+[package.dependencies]
+ephem = ">=3.7.5.3"
+python-dateutil = ">=2.6.1"
+pytz = "*"
+
+[[package]]
 name = "lunardate"
 version = "0.2.0"
 description = "A Chinese Calendar Library in Pure Python"
@@ -1151,6 +1190,26 @@ python-versions = ">=3.6.2"
 wcwidth = "*"
 
 [[package]]
+name = "prophet"
+version = "1.1.1"
+description = "Automatic Forecasting Procedure"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+cmdstanpy = ">=1.0.4"
+convertdate = ">=2.1.2"
+holidays = ">=0.14.2"
+LunarCalendar = ">=0.0.9"
+matplotlib = ">=2.0.0"
+numpy = ">=1.15.4"
+pandas = ">=1.0.4"
+python-dateutil = ">=2.8.0"
+setuptools-git = ">=1.2"
+tqdm = ">=4.36.1"
+
+[[package]]
 name = "psutil"
 version = "5.9.4"
 description = "Cross-platform lib for process and system monitoring in Python."
@@ -1439,6 +1498,14 @@ objc = ["pyobjc-framework-cocoa"]
 win32 = ["pywin32"]
 
 [[package]]
+name = "setuptools-git"
+version = "1.2"
+description = "Setuptools revision control system plugin for Git"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "setuptools-scm"
 version = "7.1.0"
 description = "the blessed package to manage your versions by scm tags"
@@ -1610,6 +1677,23 @@ optional = false
 python-versions = ">= 3.7"
 
 [[package]]
+name = "tqdm"
+version = "4.64.1"
+description = "Fast, Extensible Progress Meter"
+category = "main"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+dev = ["py-make (>=0.1.0)", "twine", "wheel"]
+notebook = ["ipywidgets (>=6)"]
+slack = ["slack-sdk"]
+telegram = ["requests"]
+
+[[package]]
 name = "traitlets"
 version = "5.8.0"
 description = "Traitlets Python configuration system"
@@ -1746,7 +1830,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "5ee08fc4c87f9c17c30eb6ed212d49a8d1bc75d8ab43c3b2bada7fa15919d247"
+content-hash = "d63d645a1b6012bd9730fc69e367fb464914f8e9e60ac78a6f46ad2397ee6313"
 
 [metadata.files]
 anyio = []
@@ -1798,6 +1882,7 @@ cffi = []
 click = []
 click-plugins = []
 cligj = []
+cmdstanpy = []
 colorama = []
 comm = []
 contourpy = []
@@ -1819,6 +1904,7 @@ entrypoints = [
     {file = "entrypoints-0.4-py3-none-any.whl", hash = "sha256:f174b5ff827504fd3cd97cc3f8649f3693f51538c7e4bdf3ef002c8429d42f9f"},
     {file = "entrypoints-0.4.tar.gz", hash = "sha256:b706eddaa9218a19ebcd67b56818f05bb27589b1ca9e8d797b74affad4ccacd4"},
 ]
+ephem = []
 executing = []
 fastjsonschema = []
 fiona = []
@@ -1864,6 +1950,7 @@ jupyterlab-pygments = [
 jupyterlab-widgets = []
 kiwisolver = []
 korean-lunar-calendar = []
+lunarcalendar = []
 lunardate = []
 markupsafe = [
     {file = "MarkupSafe-2.1.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:86b1f75c4e7c2ac2ccdaec2b9022845dbb81880ca318bb7a0a01fbf7813e3812"},
@@ -1943,6 +2030,7 @@ platformdirs = []
 plotly = []
 prometheus-client = []
 prompt-toolkit = []
+prophet = []
 psutil = []
 ptyprocess = [
     {file = "ptyprocess-0.7.0-py2.py3-none-any.whl", hash = "sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35"},
@@ -1990,6 +2078,7 @@ send2trash = [
     {file = "Send2Trash-1.8.0-py3-none-any.whl", hash = "sha256:f20eaadfdb517eaca5ce077640cb261c7d2698385a6a0f072a4a5447fd49fa08"},
     {file = "Send2Trash-1.8.0.tar.gz", hash = "sha256:d2c24762fd3759860a0aff155e45871447ea58d2be6bdd39b5c8f966a0c99c2d"},
 ]
+setuptools-git = []
 setuptools-scm = []
 shapely = []
 six = [
@@ -2012,6 +2101,7 @@ tomli = [
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
 ]
 tornado = []
+tqdm = []
 traitlets = []
 typing-extensions = []
 tzdata = []
