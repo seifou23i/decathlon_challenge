@@ -2,16 +2,18 @@ name: Make predictions
 inputs:
 - {name: x_test, type: String}
 - {name: model, type: String}
+outputs:
+- {name: predictions, type: String}
 implementation:
   container:
-    image: python:3.9
+    image: python:3.9.7
     command:
     - sh
     - -c
     - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'pandas' 'xgboost' 'scikit-learn' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
-      -m pip install --quiet --no-warn-script-location 'pandas' 'xgboost' 'scikit-learn'
-      --user) && "$0" "$@"
+      'pandas==1.5.2' 'xgboost==1.7.2' 'scikit-learn==1.2.0' || PIP_DISABLE_PIP_VERSION_CHECK=1
+      python3 -m pip install --quiet --no-warn-script-location 'pandas==1.5.2' 'xgboost==1.7.2'
+      'scikit-learn==1.2.0' --user) && "$0" "$@"
     - sh
     - -ec
     - |
@@ -19,9 +21,15 @@ implementation:
       printf "%s" "$0" > "$program_path"
       python3 -u "$program_path" "$@"
     - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
       def make_predictions(
               x_test_path,
-              model_path):
+              model_path,
+              predictions_path):
           import xgboost as xgb
           import pandas as pd
           from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -33,13 +41,14 @@ implementation:
           model.load_model(model_path)
 
           pred = model.predict(X_test.astype(float))
-          print(pred)
-          # pred = pd.DataFrame(pred, index=X_test, columns=['turnover_prediction'])
+          pred = pd.DataFrame(data=pred, index=X_test.index, columns=['turnover_prediction'])
+          pred.to_csv(predictions_path)
 
       import argparse
       _parser = argparse.ArgumentParser(prog='Make predictions', description='')
       _parser.add_argument("--x-test", dest="x_test_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--predictions", dest="predictions_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
 
       _outputs = make_predictions(**_parsed_args)
@@ -48,3 +57,5 @@ implementation:
     - {inputPath: x_test}
     - --model
     - {inputPath: model}
+    - --predictions
+    - {outputPath: predictions}

@@ -3,16 +3,18 @@ inputs:
 - {name: x_eval, type: String}
 - {name: y_eval, type: String}
 - {name: model, type: String}
+outputs:
+- {name: Output, type: Float}
 implementation:
   container:
-    image: python:3.9
+    image: python:3.9.7
     command:
     - sh
     - -c
     - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'pandas' 'xgboost' 'scikit-learn' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
-      -m pip install --quiet --no-warn-script-location 'pandas' 'xgboost' 'scikit-learn'
-      --user) && "$0" "$@"
+      'pandas==1.5.2' 'xgboost==1.7.2' 'scikit-learn==1.2.0' || PIP_DISABLE_PIP_VERSION_CHECK=1
+      python3 -m pip install --quiet --no-warn-script-location 'pandas==1.5.2' 'xgboost==1.7.2'
+      'scikit-learn==1.2.0' --user) && "$0" "$@"
     - sh
     - -ec
     - |
@@ -35,16 +37,42 @@ implementation:
           model.load_model(model_path)
 
           pred = model.predict(X_eval.astype(float))
-          print("MAE: ", mean_absolute_error(y_eval, pred))
+          return mean_absolute_error(y_eval, pred)
+
+      def _serialize_float(float_value: float) -> str:
+          if isinstance(float_value, str):
+              return float_value
+          if not isinstance(float_value, (float, int)):
+              raise TypeError('Value "{}" has type "{}" instead of float.'.format(
+                  str(float_value), str(type(float_value))))
+          return str(float_value)
 
       import argparse
       _parser = argparse.ArgumentParser(prog='Eval trained model', description='')
       _parser.add_argument("--x-eval", dest="x_eval_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--y-eval", dest="y_eval_path", type=str, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
       _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
 
       _outputs = eval_trained_model(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_float,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
     args:
     - --x-eval
     - {inputPath: x_eval}
@@ -52,3 +80,5 @@ implementation:
     - {inputPath: y_eval}
     - --model
     - {inputPath: model}
+    - '----output-paths'
+    - {outputPath: Output}

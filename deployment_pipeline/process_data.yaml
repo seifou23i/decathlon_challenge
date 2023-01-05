@@ -7,19 +7,20 @@ inputs:
   type: Boolean
   default: "True"
   optional: true
+- {name: time_lag, type: Integer, default: '4', optional: true}
 outputs:
 - {name: processed_data, type: String}
 - {name: one_hot_enc_model, type: String}
 implementation:
   container:
-    image: python:3.9
+    image: python:3.9.7
     command:
     - sh
     - -c
     - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'pandas' 'scikit-learn' 'numpy' 'holidays' || PIP_DISABLE_PIP_VERSION_CHECK=1
-      python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'
-      'numpy' 'holidays' --user) && "$0" "$@"
+      'pandas==1.5.2' 'scikit-learn==1.2.0' 'numpy==1.24.1' 'holidays==0.18' || PIP_DISABLE_PIP_VERSION_CHECK=1
+      python3 -m pip install --quiet --no-warn-script-location 'pandas==1.5.2' 'scikit-learn==1.2.0'
+      'numpy==1.24.1' 'holidays==0.18' --user) && "$0" "$@"
     - sh
     - -ec
     - |
@@ -38,7 +39,8 @@ implementation:
               processed_data_path,
               one_hot_enc_model_path,
               saved_model_path = None,
-              training = True):
+              training = True,
+              time_lag = 4):
           import pandas as pd
           from sklearn.preprocessing import OneHotEncoder
           import holidays
@@ -93,7 +95,7 @@ implementation:
 
               return series
 
-          def add_turnover_lags(data, time_lag=4):
+          def add_turnover_lags(data, time_lag=time_lag):
               """add historical data of the last time_lag year"""
 
               # add an empty columns to fill lags
@@ -124,6 +126,7 @@ implementation:
           # # add time lags
           add_turnover_lags(data, time_lag=4)
 
+          # clean test set from train
           if not training:
               data = data[data['turnover'].isna()]
               data.drop(columns=['turnover'], inplace=True)
@@ -149,6 +152,7 @@ implementation:
       _parser.add_argument("--categorical-columns", dest="categorical_columns", type=json.loads, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--saved-model", dest="saved_model_path", type=str, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--training", dest="training", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--time-lag", dest="time_lag", type=int, required=False, default=argparse.SUPPRESS)
       _parser.add_argument("--processed-data", dest="processed_data_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parser.add_argument("--one-hot-enc-model", dest="one_hot_enc_model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
       _parsed_args = vars(_parser.parse_args())
@@ -169,6 +173,11 @@ implementation:
         then:
         - --training
         - {inputValue: training}
+    - if:
+        cond: {isPresent: time_lag}
+        then:
+        - --time-lag
+        - {inputValue: time_lag}
     - --processed-data
     - {outputPath: processed_data}
     - --one-hot-enc-model

@@ -7,13 +7,14 @@ outputs:
 - {name: preprocessed_serving_data, type: String}
 implementation:
   container:
-    image: python:3.9
+    image: python:3.9.7
     command:
     - sh
     - -c
     - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
-      'pandas' 'numpy' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
-      --no-warn-script-location 'pandas' 'numpy' --user) && "$0" "$@"
+      'pandas==1.5.2' 'numpy==1.24.1' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m
+      pip install --quiet --no-warn-script-location 'pandas==1.5.2' 'numpy==1.24.1'
+      --user) && "$0" "$@"
     - sh
     - -ec
     - |
