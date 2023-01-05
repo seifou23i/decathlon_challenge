@@ -1,0 +1,54 @@
+name: Eval trained model
+inputs:
+- {name: x_eval, type: String}
+- {name: y_eval, type: String}
+- {name: model, type: String}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' 'xgboost' 'scikit-learn' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'pandas' 'xgboost' 'scikit-learn'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def eval_trained_model(
+              x_eval_path,
+              y_eval_path,
+              model_path):
+          import xgboost as xgb
+          import pandas as pd
+          from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+          X_eval = pd.read_csv(x_eval_path, index_col=0)
+          y_eval = pd.read_csv(y_eval_path, index_col=0)
+
+          model = xgb.XGBRegressor()
+          model.load_model(model_path)
+
+          pred = model.predict(X_eval.astype(float))
+          print("MAE: ", mean_absolute_error(y_eval, pred))
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Eval trained model', description='')
+      _parser.add_argument("--x-eval", dest="x_eval_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--y-eval", dest="y_eval_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = eval_trained_model(**_parsed_args)
+    args:
+    - --x-eval
+    - {inputPath: x_eval}
+    - --y-eval
+    - {inputPath: y_eval}
+    - --model
+    - {inputPath: model}

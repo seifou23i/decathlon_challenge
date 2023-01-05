@@ -1,0 +1,57 @@
+name: Train model
+inputs:
+- {name: x_train, type: String}
+- {name: y_train, type: String}
+outputs:
+- {name: model, type: String}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' 'xgboost' 'scikit-learn' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'pandas' 'xgboost' 'scikit-learn'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def train_model(
+              x_train_path,
+              y_train_path,
+              model_path):
+          import xgboost as xgb
+          import pandas as pd
+
+          X_train = pd.read_csv(x_train_path, index_col=0)
+          y_train = pd.read_csv(y_train_path, index_col=0)
+
+          xgb_reg = xgb.XGBRegressor(n_estimators=1, n_jobs=-1, max_depth=20, verbosity=1, random_state=42)
+          xgb_reg.fit(X_train.astype(float), y_train)
+          xgb_reg.save_model(model_path)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Train model', description='')
+      _parser.add_argument("--x-train", dest="x_train_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--y-train", dest="y_train_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = train_model(**_parsed_args)
+    args:
+    - --x-train
+    - {inputPath: x_train}
+    - --y-train
+    - {inputPath: y_train}
+    - --model
+    - {outputPath: model}

@@ -1,0 +1,175 @@
+name: Process data
+inputs:
+- {name: data_csv, type: String}
+- {name: categorical_columns, type: JsonArray}
+- {name: saved_model, type: String, optional: true}
+- name: training
+  type: Boolean
+  default: "True"
+  optional: true
+outputs:
+- {name: processed_data, type: String}
+- {name: one_hot_enc_model, type: String}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' 'scikit-learn' 'numpy' 'holidays' || PIP_DISABLE_PIP_VERSION_CHECK=1
+      python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'
+      'numpy' 'holidays' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def process_data(
+              data_csv_path,
+              categorical_columns,
+              processed_data_path,
+              one_hot_enc_model_path,
+              saved_model_path = None,
+              training = True):
+          import pandas as pd
+          from sklearn.preprocessing import OneHotEncoder
+          import holidays
+          import numpy as np
+          import pickle
+
+          # get data from upstream component
+          data = pd.read_csv(data_csv_path)
+
+          def process_dates(data):
+              # dates preprocessing
+              data["year"] = data.day_id.dt.year
+              data["month"] = data.day_id.dt.month
+              data["week"] = data.day_id.dt.isocalendar().week
+              data["quarter"] = data.day_id.dt.quarter
+              # #either a day in the weekly turnover belongs to a holiday
+              data["is_holiday"] = is_holiday_week(data).astype(int)
+
+          def one_hot_encoding(data, categorical_columns, training=True):
+              """add one hot encoding of categorical columns"""
+              if training:
+                  ohe = OneHotEncoder()
+                  one_hot_encoded_data = ohe.fit_transform(data[categorical_columns])
+              else:
+                  with open(saved_model_path, 'rb') as f:
+                      ohe = pickle.load(f)
+                  one_hot_encoded_data = ohe.transform(data[categorical_columns])
+
+              # save one_hot encoding model
+              with open(one_hot_enc_model_path, "wb") as f:
+                  pickle.dump(ohe, f)
+
+              one_hot_df = pd.DataFrame(one_hot_encoded_data.toarray(),
+                                        columns=ohe.get_feature_names_out(),
+                                        index=data.index)
+              return one_hot_df
+
+          def is_holiday_week(data):
+              # get holiday dates in France from 2012 to 2017
+              holidays_france = pd.DataFrame(
+                  holidays.France(years=range(2012, 2018)).keys(),
+                  dtype="datetime64[ns]",
+                  columns=["holiday_date"])
+
+              # make a tuple of (year, week) key
+              holidays_france["year"] = holidays_france["holiday_date"].dt.year
+              holidays_france["week"] = holidays_france["holiday_date"].dt.isocalendar().week
+              year_week_tuple = list(holidays_france[["year", "week"]].itertuples(index=False, name=None))
+
+              # check each row in the data if it belongs to (year, week of the year) tuple
+              series = pd.Series(list(zip(data.year, data.week)), index=data.index).isin(year_week_tuple)
+
+              return series
+
+          def add_turnover_lags(data, time_lag=4):
+              """add historical data of the last time_lag year"""
+
+              # add an empty columns to fill lags
+              for i in range(time_lag):
+                  lag = np.empty(data.shape[0])
+                  lag[:] = np.nan
+                  data["turnover_N-{}".format(i + 1)] = lag
+
+              # get the list of departments and stores
+              business_units_list = data.but_num_business_unit.unique()
+              department_list = data.dpt_num_department.unique()
+
+              # ingest lags by store and by department
+              for i in business_units_list:
+                  for j in department_list:
+                      for k in range(1, time_lag + 1):
+                          lag_data = data.loc[
+                              (data.but_num_business_unit == i) & (data.dpt_num_department == j), "turnover"].shift(
+                              -52 * k)
+                          if lag_data.shape != 0:
+                              data.loc[lag_data.index, "turnover_N-{}".format(k)] = lag_data
+
+          # set day_id adequate type
+          data["day_id"] = pd.to_datetime(data["day_id"], infer_datetime_format=True)
+          # sort data by day_id
+          data.sort_values("day_id", ascending=False, inplace=True)
+
+          # # add time lags
+          add_turnover_lags(data, time_lag=4)
+
+          if not training:
+              data = data[data['turnover'].isna()]
+              data.drop(columns=['turnover'], inplace=True)
+
+          # process dates
+          process_dates(data)
+
+          one_hot_encoded_data = one_hot_encoding(data, categorical_columns, training)
+          # drop old categorical columns
+          data.drop(columns=categorical_columns, inplace=True)
+          # concat with the one hot encoded ones
+          data = pd.concat([data, one_hot_encoded_data], axis=1)
+          data.to_csv(processed_data_path, index=False)
+
+      def _deserialize_bool(s) -> bool:
+          from distutils.util import strtobool
+          return strtobool(s) == 1
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Process data', description='')
+      _parser.add_argument("--data-csv", dest="data_csv_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--categorical-columns", dest="categorical_columns", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--saved-model", dest="saved_model_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--training", dest="training", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--processed-data", dest="processed_data_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--one-hot-enc-model", dest="one_hot_enc_model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = process_data(**_parsed_args)
+    args:
+    - --data-csv
+    - {inputPath: data_csv}
+    - --categorical-columns
+    - {inputValue: categorical_columns}
+    - if:
+        cond: {isPresent: saved_model}
+        then:
+        - --saved-model
+        - {inputPath: saved_model}
+    - if:
+        cond: {isPresent: training}
+        then:
+        - --training
+        - {inputValue: training}
+    - --processed-data
+    - {outputPath: processed_data}
+    - --one-hot-enc-model
+    - {outputPath: one_hot_enc_model}

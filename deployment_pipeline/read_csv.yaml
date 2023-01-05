@@ -1,0 +1,47 @@
+name: Read csv
+description: reading csv data form url
+inputs:
+- {name: data_url, type: String}
+outputs:
+- {name: data_csv, type: String}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def read_csv(
+              data_url,
+              data_csv_path):
+          """ reading csv data form url"""
+          import pandas as pd
+          data = pd.read_csv(data_url)
+          data.to_csv(data_csv_path, index=None)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Read csv', description='reading csv data form url')
+      _parser.add_argument("--data-url", dest="data_url", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--data-csv", dest="data_csv_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = read_csv(**_parsed_args)
+    args:
+    - --data-url
+    - {inputValue: data_url}
+    - --data-csv
+    - {outputPath: data_csv}

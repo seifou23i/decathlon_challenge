@@ -1,0 +1,77 @@
+name: Split data
+inputs:
+- {name: processed_data, type: String}
+outputs:
+- {name: X_train, type: String}
+- {name: y_train, type: String}
+- {name: X_eval, type: String}
+- {name: y_eval, type: String}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' 'datetime' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install
+      --quiet --no-warn-script-location 'pandas' 'datetime' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def split_data(
+              processed_data_path,
+              X_train_path,
+              y_train_path,
+              X_eval_path,
+              y_eval_path):
+          import pandas as pd
+          from datetime import datetime, date
+
+          processed_data = pd.read_csv(processed_data_path)
+          # set day_id adequate type
+          processed_data["day_id"] = pd.to_datetime(processed_data["day_id"], infer_datetime_format=True)
+
+          # train on all data except the last month
+          train_idx = processed_data.day_id.dt.date <= datetime(year=2017, month=8, day=31).date()
+
+          X = processed_data.drop(labels=['turnover', "day_id"], axis=1)
+          y = processed_data['turnover']
+
+          X_train, y_train = X.loc[train_idx], y.loc[train_idx]
+          X_eval, y_eval = X.loc[~train_idx], y.loc[~train_idx]
+
+          X_train.to_csv(X_train_path)
+          y_train.to_csv(y_train_path)
+          X_eval.to_csv(X_eval_path)
+          y_eval.to_csv(y_eval_path)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Split data', description='')
+      _parser.add_argument("--processed-data", dest="processed_data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--X-train", dest="X_train_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--y-train", dest="y_train_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--X-eval", dest="X_eval_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--y-eval", dest="y_eval_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = split_data(**_parsed_args)
+    args:
+    - --processed-data
+    - {inputPath: processed_data}
+    - --X-train
+    - {outputPath: X_train}
+    - --y-train
+    - {outputPath: y_train}
+    - --X-eval
+    - {outputPath: X_eval}
+    - --y-eval
+    - {outputPath: y_eval}

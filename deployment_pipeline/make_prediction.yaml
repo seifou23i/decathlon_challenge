@@ -1,0 +1,50 @@
+name: Make predictions
+inputs:
+- {name: x_test, type: String}
+- {name: model, type: String}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' 'xgboost' 'scikit-learn' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'pandas' 'xgboost' 'scikit-learn'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def make_predictions(
+              x_test_path,
+              model_path):
+          import xgboost as xgb
+          import pandas as pd
+          from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+          X_test = pd.read_csv(x_test_path)
+          X_test = X_test.drop(columns=['day_id'])
+
+          model = xgb.XGBRegressor()
+          model.load_model(model_path)
+
+          pred = model.predict(X_test.astype(float))
+          print(pred)
+          # pred = pd.DataFrame(pred, index=X_test, columns=['turnover_prediction'])
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Make predictions', description='')
+      _parser.add_argument("--x-test", dest="x_test_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = make_predictions(**_parsed_args)
+    args:
+    - --x-test
+    - {inputPath: x_test}
+    - --model
+    - {inputPath: model}

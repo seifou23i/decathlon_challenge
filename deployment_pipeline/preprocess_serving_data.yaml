@@ -1,0 +1,62 @@
+name: Pre process serving data
+description: get historical data from data_train
+inputs:
+- {name: serving_data, type: String}
+- {name: historical_data, type: String}
+outputs:
+- {name: preprocessed_serving_data, type: String}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas' 'numpy' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'pandas' 'numpy' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def pre_process_serving_data(
+              serving_data_path,
+              historical_data_path,
+              preprocessed_serving_data_path):
+          """get historical data from data_train"""
+          import numpy as np
+          import pandas as pd
+
+          historical_data = pd.read_csv(historical_data_path)
+          serving_data = pd.read_csv(serving_data_path)
+
+          # add an empty turnover column
+          empty_column = np.empty(serving_data.shape[0])
+          empty_column[:] = np.nan
+          serving_data["turnover"] = empty_column
+
+          preprocessed_serving_data = pd.concat([historical_data, serving_data], axis=0, ignore_index=True)
+          preprocessed_serving_data.to_csv(preprocessed_serving_data_path, index=False)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Pre process serving data', description='get historical data from data_train')
+      _parser.add_argument("--serving-data", dest="serving_data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--historical-data", dest="historical_data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--preprocessed-serving-data", dest="preprocessed_serving_data_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = pre_process_serving_data(**_parsed_args)
+    args:
+    - --serving-data
+    - {inputPath: serving_data}
+    - --historical-data
+    - {inputPath: historical_data}
+    - --preprocessed-serving-data
+    - {outputPath: preprocessed_serving_data}
